@@ -1,0 +1,13 @@
+[profile.release]
+opt-level = 3
+lto = true
+panic = 'abort'
+
+[package]
+name = "epic"
+version = "0.1.0"
+authors = ["Denis Memmesheimer <dmheimer@uni-koblenz.de>"]
+
+[dependencies]
+regex = "1"
+url = "*"
