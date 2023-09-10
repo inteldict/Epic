@@ -5,9 +5,12 @@ panic = 'abort'
 
 [package]
 name = "epic"
-version = "0.1.0"
-authors = ["Denis Memmesheimer <dmheimer@uni-koblenz.de>"]
+version = "0.2.1"
+authors = ["Denis Memmesheimer <denismemmesheimer@gmail.com>"]
 
 [dependencies]
-regex = "1"
-url = "*"
+regex = { version = "1" }
+url = { version = "2.4.1" }
+epos = { path = "../epos" }
+config = "0.13"
+serde = "1.0.8"

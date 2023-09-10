@@ -1,0 +1,8 @@
+[logging]
+log_file = "epic.log"
+
+[query_args]
+query_param_names = ["s", "num"]
+
+[parser_args]
+parser_init_args = ["-load", "/opt/parsing_data/evalb/step211212/full.lm", "-s", "VROOT"]
