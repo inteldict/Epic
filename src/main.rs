@@ -1,5 +1,3 @@
-mod settings;
-
 extern crate eposlib;
 extern crate regex;
 extern crate url;
@@ -18,6 +16,7 @@ use regex::Regex;
 
 use settings::AppSettings;
 
+mod settings;
 
 static QUERY_STRING: &str = "QUERY_STRING";
 
@@ -53,7 +52,7 @@ impl QueryArgs {
             match key.as_str() {
                 "s" => parameter_values.0 = value.clone(),
                 "num" => parameter_values.1 = value.clone(),
-                _ => return Err(format!("Unknown parameter {}:{}", key, value).into()),
+                _ => return Err(format!("Unknown API parameter {}:{}", key, value).into()),
             }
         }
 
@@ -80,41 +79,49 @@ fn log_error<T: fmt::Display>(err: T) {
     }
 }
 
-fn log_to_file<T: fmt::Display>(filename: &str, err: T) -> io::Result<()> {
+fn log_to_file<T: fmt::Display>(filename: &str, msg: T) -> io::Result<()> {
     let mut file = OpenOptions::new()
         .create(true)
         .write(true)
         .append(true)
         .open(filename)?;
-    writeln!(&mut file, "Error: {}", err)?;
+    writeln!(&mut file, "{}", msg)?;
     Ok(())
 }
 
 
 fn main() {
+    let app_settings: AppSettings = match AppSettings::new() {
+        Ok(settings) => settings,
+        Err(err) => {
+            eprintln!("Error in config: {}", &err);
+            log_error(&err);
+            return;
+        }
+    };
+
     print!("Content-type: text/plain\n\n");
 
-    if let Err(err) = parse() {
-        if let Err(io_err) = log_to_file("epic.log", &err) {
+    if let Err(err) = parse(&app_settings) {
+        if let Err(io_err) = log_to_file(&app_settings.logging.log_file, &err) {
             eprintln!("Failed to log error to file: {}", io_err);
             log_error(&err);
         }
     }
 }
 
-fn parse() -> Result<(), Box<dyn Error>> {
+fn parse(app_settings: &AppSettings) -> Result<(), Box<dyn Error>> {
+    // Read arguments from browser
     let query_args = QueryArgs::new()?;
-    // let parser_args: Vec<String> = vec!["-load", "/opt/parsing_data/evalb/step211212/full.lm", "-s", "VROOT"]
-    //     .iter()
-    //     .map(|s| s.to_string())
-    //     .collect();
-
-    let app_settings = AppSettings::new()?;
-    let config = EPOS_CONFIG::new(app_settings.parser_args.parser_init_args.into_iter())?;
+    // Load Language Model
+    let config = EPOS_CONFIG::new(app_settings.parser_args.parser_init_args.clone().into_iter())?;
     let lm = Arc::new(lm::load_model(&config)?);
+    // Parse requested sentence
+    let parses: Vec<ParserOutput> = eposlib::parse_standard(query_args.words.clone(), &None, lm, query_args.num, false)?;
 
-    let parses: Vec<ParserOutput> = eposlib::parse_standard(query_args.words, &None, lm, query_args.num, false)?;
+    log_to_file(&app_settings.logging.log_file, format!("{} trees were derived for the input: {:?}", parses.len(), &query_args.words))?;
 
+    // Output results to the console
     for parse in &parses {
         println!("{}", parse.parse);
     }
