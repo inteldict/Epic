@@ -48,3 +48,5 @@ helper.txt
 # IDEA files
 *.ipr 
 *.iws
+# Deploy directory
+deploy
